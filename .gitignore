@@ -1,0 +1,11 @@
+*~
+_minted*
+*.aux
+*.bib
+*bak
+*.log
+*.out
+*.pdf
+*.synctex.gz
+*.bbl
+*.blg
