@@ -5,7 +5,6 @@ _minted*
 *bak
 *.log
 *.out
-*.pdf
 *.synctex.gz
 *.bbl
 *.blg
