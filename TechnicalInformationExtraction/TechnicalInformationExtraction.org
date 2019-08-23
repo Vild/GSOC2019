@@ -1,0 +1,289 @@
+#+TITLE: Technical Information Extraction
+#+AUTHOR: Dan Printzell
+#+EMAIL: gsoc@vild.io
+
+#+BEGIN_COMMENT
+- Finding a hook to translate
+- Where to add the new code, how to update the buildsystem
+- How to manage the CTFE.
+- Navigating the codebase: Which dmd files are relevant? Where should I
+ look for class X?
+- Examples of previous translations
+ - with notes on how they were updated / fixed
+- Debugging technique
+- How to implement a -profile=gc entrypoint.
+#+END_COMMENT
+
+* Notes                                                            :noexport:
+
+** Prev hooks
+
+Here are a list of previous hook translations pull request that were
+submitted before the GSoC project.
+Merged:
+- object.__cmp:
+	- https://github.com/dlang/dmd/pull/6597
+	- https://github.com/dlang/druntime/pull/1781
+	- https://github.com/dlang/dmd/pull/7279
+- object.__equals:
+	- https://github.com/dlang/dmd/pull/6697
+	- https://github.com/dlang/druntime/pull/1824
+	- https://github.com/dlang/dmd/pull/7225
+- string switch:
+	- https://github.com/dlang/dmd/pull/7273
+	- https://github.com/dlang/druntime/pull/1952
+	- https://github.com/dlang/dmd/pull/7295
+- final switch:
+	- https://github.com/dlang/dmd/pull/7303
+	- https://github.com/dlang/druntime/pull/1971
+- array casts:
+	- https://github.com/dlang/dmd/pull/9516
+	- https://github.com/dlang/druntime/pull/2264
+	- https://github.com/dlang/druntime/pull/2531
+	- https://github.com/dlang/dmd/pull/9572
+
+Not merged:
+- object.__cmp
+	- https://github.com/dlang/dmd/pull/9629
+	- https://github.com/dlang/druntime/pull/2562
+- newExp
+	- https://github.com/dlang/dmd/pull/9433
+	- https://github.com/dlang/druntime/pull/2508
+
+
+** Pre-PR
+https://github.com/dlang/dmd/pull/9839
+
+
+** Use _d_ not __
+
+** externDFunc
+
+** nothrow
+** pure hell
+** @trusted
+** debug/release
+
+
+** TraceGC old way how it works
+
+** New template way
+
+** CTFE when it gets called
+** CTFE how to manage it
+
+** Good things about scope(failure). nothrow acceptable
+
+** typeid(T) is your friend to be the arguments types correct
+
+
+** Don't overcomplicate things
+*** If you more edge-cases need to be implement, something else probably need to be improved first
+** __ctfe ? : . Magic of CondExp 
+
+
+** Hook.html
+
+** st.flags & SCOPE.ctfe && SCOPE.compiles
+
+** Return types will not always match the old hook
+
+** Construction cannot always be moved into the function (Case study: _d_arrayappendcTX)
+
+
+** e2ir read out-to-in, expressionsem constructs in-to-out
+*** _d_arraycatnTX
+
+** -vcg-ast
+
+
+* Before coding
+** Finding a hook to translate
+
+
+* While coding
+
+** Debugging technique
+
+** How to implement a -profile=gc entrypoint
+
+* After coding
+
+* Current problems
+/Information correct at <2019-08-23 Fri>/
+
+There are a few issues that need to be resolve before future work of
+translation hooks should be done. They have varied difficulty in
+designing a solution and implementing it. All these problem boil down
+to the legacy way of handling it. The only was the compiler called
+hooks were in the backend.
+
+For example when the codegen (/e2ir.d/[fn:3]) encounters a concatination
+expression (~CatExp~) it will generate assembly instructions that call the
+~_d_arraycatnTX~ / ~_d_arraycatT~ hooks inside of /lifetime.d/[fn:1][fn:2]. By
+generating the call in the backend instead of the frontend it will not
+verify the attribute of the hook. This means that the old hooks can be
+used in a ~pure nothrow @safe~ context even if the hook function is
+not marked with anything.
+
+So solve these issues a hook will be converted to a template function
+which means that the call will be moved to the frontend, where all the
+attribute and type checks can be done. The problem that this generates
+is that the new template function still need to work in the same
+scopes as the old functions to not break any code.
+
+Most of the attributes can be worked around, like ~@safe~ can be
+bypassed by marking the hook with ~@trusted~. ~nothrow~
+can be worked around doing type introspection or by casting the hook
+to make it look ~nothrow~[fn:4].
+
+The most annoying attribute to workaround is ~pure~. It is the most
+annoying one as ~pure~ can be removed by the optimizer if is return
+valid is not used. So to correctly fake something as ~pure~ you need
+to first cast it to pure and then write a runtime check on its return
+valid to make sure that the compiler never removes the call.
+
+An example of this is how the ~_d_HookTraceImpl~ template is
+implemented[fn:5].
+
+#+BEGIN_SRC d
+if (size > 0)
+	if (!accumulatePure(file, line, funcname, name, size)) {
+		// This 'if' and 'assert' is needed to force the compiler to not remove the call to
+		// `accumulatePure`. It really want to do that while optimizing as the function is
+		// `pure` and it does not influence the result of this hook.
+
+		// `accumulatePure` returns the value of `size`, which can never be zero due to the
+		// previous 'if'. So this assert will never be triggered.
+		assert(0);
+	}
+#+END_SRC
+
+
+* Introduction for working on the compiler
+
+Here is some information for people that want get started with helping
+the hook translation effort. The information will be split up into a
+few section to tackle multiple subject and to aid the lookup-ability
+of information.
+
+** Navigating the codebase
+
+Navigating the compile codebase is hard when you do not know how a
+compiler works and is structured, and to further increase the
+difficulty dmd is not split into clearly defined packages. This
+section will present the minimum information needed to be able to
+understand how the compiler is structured and where to look for code.
+
+*** Statements and Expressions
+The most important two concept that are important to know the
+different between are statements and expressions.
+
+Statements can be thought of as code blocks. They are used to
+represent code-flow. For example there is a ~IfStatemenT~ which job is
+to convey the meaning of ~if (IfCondition) ThenStatement else
+ElseStatement~.
+Another example would be ~WhileStatement~ which represents ~while
+(Expression) ScopeStatement~.
+
+The other concept is expressions, these can be though of as actions.
+This would be actions like ~a + b~, which internally is a ~AddExp~, or
+~func(arg1, arg2)~ which is a ~CallExp~.
+
+When translating hooks it is often the expressions you transform to
+generate call the to the templated hook function.
+
+More information about statements can be found at
+[https://dlang.org/spec/statement.html], and more information about
+expressions can be found at [https://dlang.org/spec/expression.html].
+
+*** dmd's codebase
+Now for the huge beast that is the dmd source code. Explaining
+everything you would ever touch or need would be too big so here is a
+few good "entrypoints" where to start reading and search for stuff.
+
+The codebase is split into two sections the frontend and the backend.
+The frontend is where the D code is lexed, parsed and rewritten into a
+/Abstract Syntax Tree/ (AST) that the backend will use to generate
+code for the target. The frontend is shared between DMD, LDC and GDC,
+and each compiler have their own backend.
+
+Some of the important files to know about in the frontend is the 
+- expression.d :: It is where where all the expression classes
+                  live. This is a good place find out what each
+                  expression contain, what there constructor takes,
+                  etc.
+- expressionsem.d :: Here the expression are rewritten to better forms
+     that the backend will understand better, were templates are
+     instantiated and where the template hook calls will be
+     implemented.
+- statement.d :: This is the equivalent of /expression.d/ but instead
+                 for statement classes.
+- statementsem.d :: Same as /expressionsem.d/ but for statements.
+- dscope.d :: This contains the definition of the ~Scope~ struct. This
+              struct defines the attributes (~@safe, nothrow, pure~,
+              etc.) that are currently in active. It also contains a
+              ~flags~ bitmap that tells you in what context the
+              expression is exist it. For example ~flags &
+              SCOPE.compile~ will be true if expression is inside of a
+              ~__traits(compile, ...)~.
+- astbase.d :: This module contains the ~Declaration~ class hierarchy
+               which defined new symbols and what their construction
+               value will be. It also defined information about types.
+- tokens.d :: This module defined all the tokens that the compiler
+              manages.
+- dinterpret.d :: This code contains the implements of the CTFE. If a
+                  hook need to be intercepted before it is ran inside
+                  the interpreter is should be written here.
+- nogc.d :: This files job is to verify that only ~@nogc~ code is called
+            from other ~@nogc~ code. Template hooks need to implements
+            their own detection as the template rewrite will probably
+            break the old check, or might cause duplicated errors.
+
+The file that will probably be of interest is /e2ir.d/. It is used to
+convert the expressions from the AST to /Intermediate Representation/
+(IR) form. It is here were the old calls to the hooks are
+implemented, and it is here were the logic can be found to know which
+of the runtime hooks will be calls. This logic should be implemented
+in /expressionsem.d/ when translating a hook to a template.
+
+*** druntime's codebase
+Navigating the druntime codebase is not too difficult and if you have
+worked with D previously it should not be too hard to navigate it. But
+some of the important module collections to know about is the ~rt~ and
+the ~core.internal~ collections. It is inside the ~rt~ collection
+where old, non-translate, hooks can be found. This collection is
+compile into the /libdruntime.a/ but never accessable from user D
+code, i.e you cannot do ~import rt.lifetime;~. How this collection is
+accessed will be mention later.
+
+The other collection that you should learn about is the
+~core.internal~. It is this collection where you should place the
+newly translate template hooks. The new hooks should then be
+*publicly* imported inside of /object.d/.
+
+
+*** druntime's buildsystem
+When adding new file to the druntime buildsystem, in this case in the
+~core.internal~ collection, the file need to be defined in:
+/mak/COPY/, /mak/DOCS/, /mak/SRCS/, /mak/WINDOWS/, and /posix.mak/.
+Just follow how the other files and defined and add the definition of
+your file.
+
+
+
+
+
+
+* Footnotes
+
+[fn:5] https://github.com/dlang/druntime/blob/396a0ec7ef2ba38bb6314f7992d5d99be3645f02/src/core/internal/array/utils.d#L79
+
+[fn:4] Casting away ~nothrow~ can cause bugs as the optimizer
+will remove ~try {} catch() {}~ if nothing inside the ~try~ scope throws.
+
+[fn:3] https://github.com/dlang/dmd/blob/1d5170b98584de31ff3d6e9790f49182f2c4b833/src/dmd/e2ir.d#L2283
+
+[fn:2] https://github.com/dlang/druntime/blob/396a0ec7ef2ba38bb6314f7992d5d99be3645f02/src/rt/lifetime.d#L2178
+[fn:1] https://github.com/dlang/druntime/blob/396a0ec7ef2ba38bb6314f7992d5d99be3645f02/src/rt/lifetime.d#L2244
+

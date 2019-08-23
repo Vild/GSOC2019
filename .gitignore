@@ -8,3 +8,5 @@ _minted*
 *.synctex.gz
 *.bbl
 *.blg
+*.tex
+!Proposal/*.tex

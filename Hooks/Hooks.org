@@ -1,0 +1,136 @@
+#+OPTIONS: ^:nil
+#+TITLE: GSoC 2019 Hook status
+#+AUTHOR: Dan Printzell
+#+TODO: TODO DMD-LEFT | DONE
+
+* Hook
+** Milestone 1
+*** DMD-LEFT _d_arrayappend{T,cTX}
+*Hacks*:
+- Forces @trusted pure nothrow
+	- Nothrow could probably be detected by introspecting if postblit is
+    nothrow. But that could break existing code, but probably worth if
+    that error could be turned into a warning.
+- version(D_BetterC) needed to allow concatenations during CTFE with
+  betterC.
+	- This is needed because the template is instantiated before CTFE
+and other lowerings.
+*** DMD-LEFT _d_array{,set}ctor
+*Current Problems*:
+- `nothrow` cannot be forces onto this hooks, it must be able to be
+  deducted. If it is force this unittest will fail:
+https://github.com/Vild/druntime/blob/ConvertArrayCtorHook/src/object.d#L3546
+ If it's not forced, the hook will be marked as `throw` and code will
+ stop to compile.
+
+*Hacks*:
+- Forces @trusted pure nothrow
+	- Nothrow could probably be detected by introspecting if postblit is
+    nothrow. But that could break existing code, but probably worth if
+    that error could be turned into a warning.
+*** DMD-LEFT _d_arraycatnTX
+*Current Problems*:
+- `static` gets added when running `expressionSemantic` on
+  `DeclarationExp` for the temp array. And `scope` and `static` cannot
+  be used at the same time.
+
+*Hacks*:
+- Forces @trusted pure nothrow
+	- Nothrow could probably be detected by introspecting if postblit is
+    nothrow. But that could break existing code, but probably worth if
+    that error could be turned into a warning.
+- version(D_BetterC) needed to allow concatenations during CTFE with
+  betterC.
+	- This is needed because the template is instantiated before CTFE
+    and other lowerings.
+** Milestone 2
+*** DONE _d_arraysetlength{,i}T
+*Implementation*:
+In theory these hooks should be pretty simple.
+#+BEGIN_SRC d
+void visit(AssignExp ae) {
+ if (ae.e1.isArrayLengthExp()) { /* Lower */ }
+}
+ // Lower
+#+END_SRC
+The template function will call the old TypeInfo function as the hook
+uses a lot of dependencies from rt/lifetime.d
+
+*Hacks*:
+- This will probably require hack for @trusted pure nothrow, as usual.
+
+*** TODO _d_arrayliteralTX
+*Implementation*:
+In theory these hooks should be pretty simple.
+#+BEGIN_SRC d
+void visit(ArrayLiteralExp ale) {
+ if (!(ale.type.toBasetype().ty == Tsarray && ale.elements.dim) && ale.elements) { /* Lower */ }
+}
+ // Lower
+#+END_SRC
+The template function will call the old TypeInfo function as the hook
+uses `__setArrayAllocLength` and `__arrayStart` from rt/lifetime.d
+
+`_d_arrayliteralT` does not exist anymore.
+
+*Hacks*:
+- This will probably require hack for @trusted pure nothrow, as usual.
+
+*** DONE _d_arraysetcapacity
+*Implementation*:
+This one does not need to be done. rt.array.capacity already have it
+and this hook does not have anything inside dmd.
+
+*Hacks*:
+- This one is currently also faking its safety level.
+** Milestone 3
+*** TODO _d_delarray_t
+*Implementation*:
+Same as the other ones, the druntime template hook will call the
+typeinfo hook, due to rt.lifetime dependencies.
+
+#+BEGIN_SRC d
+void visit(DeleteExp de) {
+  if (de.e1.type.toBasetype.ty == Tarray) { /* Lower */}
+}
+#+END_SRC
+
+*Hacks*:
+- Same as others, fake safety
+
+*** TODO _d_arrayassign{,_l,_r}
+*Implementation*:
+
+dmd part is will use a lot of the same codepaths as _d_arrayctor, so
+once _d_arrayctor is working it should not be overly complicated to
+implement these.
+
+I believe these three hooks can be fully translated as they don't do
+anything stupid or need dependencies, except for malloc, free, and memcpy.
+*Hacks*:
+- Same as others
+
+*** DONE _d_arrayshrinkfit
+*Implementation*:
+This one does not need to be done. rt.array.capacity already have it,
+and this hook does not have anything inside dmd.
+
+*Hacks*:
+- This one fakes `nothrow`
+*** TODO _d_arraysetassign
+*Implementation*:
+The druntime part is similar to _d_arraysetctor, and it will be able
+to port the whole thing.
+Once _d_arraysetctor is done the dmd part should be easy to implement,
+as the logic is almost the same.
+
+*Hacks*:
+- Fake the safety as usual
+*** TODO _d_newarray{U,T,iT,m{TX,iTX}}
+*Implementation*:
+Most of the druntime part will have to call the old TypeInfo hooks.
+
+The dmd part can be difficult like AssignExp, but probably not.
+
+*Hacks*:
+- Same as usual, fake safety.
