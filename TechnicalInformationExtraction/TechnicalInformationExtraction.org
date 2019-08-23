@@ -4,10 +4,7 @@
 
 #+BEGIN_COMMENT
 - Finding a hook to translate
-- Where to add the new code, how to update the buildsystem
 - How to manage the CTFE.
-- Navigating the codebase: Which dmd files are relevant? Where should I
- look for class X?
 - Examples of previous translations
  - with notes on how they were updated / fixed
 - Debugging technique
@@ -81,7 +78,7 @@ https://github.com/dlang/dmd/pull/9839
 *** If you more edge-cases need to be implement, something else probably need to be improved first
 ** __ctfe ? : . Magic of CondExp 
 
-
+	 
 ** Hook.html
 
 ** st.flags & SCOPE.ctfe && SCOPE.compiles
@@ -100,14 +97,13 @@ https://github.com/dlang/dmd/pull/9839
 * Before coding
 ** Finding a hook to translate
 
-
+	 
 * While coding
 
 ** Debugging technique
 
 ** How to implement a -profile=gc entrypoint
 
-* After coding
 
 * Current problems
 /Information correct at <2019-08-23 Fri>/
@@ -273,6 +269,27 @@ your file.
 
 
 
+
+
+** Tips and tricks while working
+
+** __ctfe ? : . Magic of CondExp
+
+*** e2ir works out-to-in, expressionsem constructs in-to-out
+
+* Debug techniques
+
+** ~printf~ is your friend
+
+** LDC implements more DWARF info, helps gdb.
+
+
+** Useful techniques
+
+* How previous hooks where translated
+#+BEGIN_COMMENT
+problems founds, etc.
+#+END_COMMENT
 
 
 * Footnotes
