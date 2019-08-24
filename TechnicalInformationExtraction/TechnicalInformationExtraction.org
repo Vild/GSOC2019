@@ -11,100 +11,6 @@
 - How to implement a -profile=gc entrypoint.
 #+END_COMMENT
 
-* Notes                                                            :noexport:
-
-** Prev hooks
-
-Here are a list of previous hook translations pull request that were
-submitted before the GSoC project.
-Merged:
-- object.__cmp:
-	- https://github.com/dlang/dmd/pull/6597
-	- https://github.com/dlang/druntime/pull/1781
-	- https://github.com/dlang/dmd/pull/7279
-- object.__equals:
-	- https://github.com/dlang/dmd/pull/6697
-	- https://github.com/dlang/druntime/pull/1824
-	- https://github.com/dlang/dmd/pull/7225
-- string switch:
-	- https://github.com/dlang/dmd/pull/7273
-	- https://github.com/dlang/druntime/pull/1952
-	- https://github.com/dlang/dmd/pull/7295
-- final switch:
-	- https://github.com/dlang/dmd/pull/7303
-	- https://github.com/dlang/druntime/pull/1971
-- array casts:
-	- https://github.com/dlang/dmd/pull/9516
-	- https://github.com/dlang/druntime/pull/2264
-	- https://github.com/dlang/druntime/pull/2531
-	- https://github.com/dlang/dmd/pull/9572
-
-Not merged:
-- object.__cmp
-	- https://github.com/dlang/dmd/pull/9629
-	- https://github.com/dlang/druntime/pull/2562
-- newExp
-	- https://github.com/dlang/dmd/pull/9433
-	- https://github.com/dlang/druntime/pull/2508
-
-
-** Pre-PR
-https://github.com/dlang/dmd/pull/9839
-
-
-** Use _d_ not __
-
-** externDFunc
-
-** nothrow
-** pure hell
-** @trusted
-** debug/release
-
-
-** TraceGC old way how it works
-
-** New template way
-
-** CTFE when it gets called
-** CTFE how to manage it
-
-** Good things about scope(failure). nothrow acceptable
-
-** typeid(T) is your friend to be the arguments types correct
-
-
-** Don't overcomplicate things
-*** If you more edge-cases need to be implement, something else probably need to be improved first
-** __ctfe ? : . Magic of CondExp 
-
-	 
-** Hook.html
-
-** st.flags & SCOPE.ctfe && SCOPE.compiles
-
-** Return types will not always match the old hook
-
-** Construction cannot always be moved into the function (Case study: _d_arrayappendcTX)
-
-
-** e2ir read out-to-in, expressionsem constructs in-to-out
-*** _d_arraycatnTX
-
-** -vcg-ast
-
-
-* Before coding
-** Finding a hook to translate
-
-	 
-* While coding
-
-** Debugging technique
-
-** How to implement a -profile=gc entrypoint
-
-
 * Current problems
 /Information correct at <2019-08-23 Fri>/
 
@@ -271,11 +177,39 @@ your file.
 
 
 
-** Tips and tricks while working
+
+** TraceGC old way how it works
+
+** CTFE when it gets called
+
+** Bugs can be found with release
+
+* Coding guidelines
+
+** Use _d_ not __
+
+** externDFunc
 
 ** __ctfe ? : . Magic of CondExp
 
-*** e2ir works out-to-in, expressionsem constructs in-to-out
+** How to implement a -profile=gc entrypoint
+** New template way
+** Good things about scope(failure). nothrow acceptable
+** typeid(T) is your friend to be the arguments types correct
+
+
+** Return types will not always match the old hook
+
+** Construction cannot always be moved into the function
+
+** e2ir read out-to-in, expressionsem constructs in-to-out
+
+** Tips and tricks while working
+
+
+
+** Don't overcomplicate things
+*** If you more edge-cases need to be implement, something else probably need to be improved first
 
 * Debug techniques
 
@@ -283,13 +217,50 @@ your file.
 
 ** LDC implements more DWARF info, helps gdb.
 
-
-** Useful techniques
-
+** -vcg-ast
 * How previous hooks where translated
 #+BEGIN_COMMENT
 problems founds, etc.
 #+END_COMMENT
+
+** Prev hooks
+
+ Here are a list of previous hook translations pull request that were
+ submitted before the GSoC project.
+ Merged:
+ - object.__cmp:
+	 - https://github.com/dlang/dmd/pull/6597
+	 - https://github.com/dlang/druntime/pull/1781
+	 - https://github.com/dlang/dmd/pull/7279
+ - object.__equals:
+	 - https://github.com/dlang/dmd/pull/6697
+	 - https://github.com/dlang/druntime/pull/1824
+	 - https://github.com/dlang/dmd/pull/7225
+ - string switch:
+	 - https://github.com/dlang/dmd/pull/7273
+	 - https://github.com/dlang/druntime/pull/1952
+	 - https://github.com/dlang/dmd/pull/7295
+ - final switch:
+	 - https://github.com/dlang/dmd/pull/7303
+	 - https://github.com/dlang/druntime/pull/1971
+ - array casts:
+	 - https://github.com/dlang/dmd/pull/9516
+	 - https://github.com/dlang/druntime/pull/2264
+	 - https://github.com/dlang/druntime/pull/2531
+	 - https://github.com/dlang/dmd/pull/9572
+
+ Not merged:
+ - object.__cmp
+	 - https://github.com/dlang/dmd/pull/9629
+	 - https://github.com/dlang/druntime/pull/2562
+ - newExp
+	 - https://github.com/dlang/dmd/pull/9433
+	 - https://github.com/dlang/druntime/pull/2508
+
+
+** Pre-PR
+https://github.com/dlang/dmd/pull/9839
+
 
 
 * Footnotes
