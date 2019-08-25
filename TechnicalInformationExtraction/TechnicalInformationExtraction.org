@@ -165,7 +165,7 @@ newly translate template hooks. The new hooks should then be
 *publicly* imported inside of /object.d/.
 
 
-*** druntime's buildsystem
+*** TODO druntime's buildsystem
 When adding new file to the druntime buildsystem, in this case in the
 ~core.internal~ collection, the file need to be defined in:
 /mak/COPY/, /mak/DOCS/, /mak/SRCS/, /mak/WINDOWS/, and /posix.mak/.
@@ -178,13 +178,13 @@ your file.
 
 
 
-** TraceGC old way how it works
+** TODO TraceGC old way how it works
 
-** CTFE when it gets called
+** TODO CTFE when it gets called
 
-** Bugs can be found with release
+** TODO Bugs can be found with release
 
-* Coding guidelines
+* TODO Coding guidelines
 
 ** Use _d_ not __
 
@@ -211,13 +211,13 @@ your file.
 ** Don't overcomplicate things
 *** If you more edge-cases need to be implement, something else probably need to be improved first
 
-* Debug techniques
+* TODO Debug techniques
 
-** ~printf~ is your friend
+** TODO ~printf~ is your friend
 
-** LDC implements more DWARF info, helps gdb.
+** TODO LDC implements more DWARF info, helps gdb.
 
-** -vcg-ast
+** TODO -vcg-ast
 * How previous hooks where translated
 #+BEGIN_COMMENT
 problems founds, etc.
